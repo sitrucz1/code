@@ -62,17 +62,21 @@ Class RBTree
     End Function
 
     Private Sub ColorFlip(n)
+        Wscript.Echo "Color flip ", n.Data
         n.Color = Not n.Color
         n.Lchild.Color = Not n.Lchild.Color
         n.Rchild.Color = Not n.Rchild.Color
     End Sub
 
-    Public Sub RotateLeft(n)
+    Private Function RotateLeft(n)
         Dim x
         Wscript.Echo "Rotate Left ", n.Data
         Set x = n.Rchild
         Set n.Rchild = x.Lchild
         Set x.Lchild = n
+        If Not n.Rchild Is Nothing Then
+            Set n.Rchild.Parent = n
+        End If
         Set x.Parent = n.Parent
         Set n.Parent = x
         x.Color = n.Color
@@ -84,14 +88,18 @@ Class RBTree
         Else
             Set x.Parent.Rchild = x
         End If
-    End Sub
+        Set RotateLeft = x
+    End Function
 
-    Private Sub RotateRight(n)
+    Private Function RotateRight(n)
         Dim x
         Wscript.Echo "Rotate Right ", n.Data
         Set x = n.Lchild
         Set n.Lchild = x.Rchild
         Set x.Rchild = n
+        If Not n.Lchild Is Nothing Then
+            Set n.Lchild.Parent = n
+        End If
         Set x.Parent = n.Parent
         Set n.Parent = x
         x.Color = n.Color
@@ -103,7 +111,8 @@ Class RBTree
         Else
             Set x.Parent.Rchild = x
         End If
-    End Sub
+        Set RotateRight = x
+    End Function
 
     Public Function NodeInsert(byval v)
         Dim n, p, f
@@ -139,45 +148,47 @@ Class RBTree
     Private Sub InsertFixup(n)
         Dim p, gp
         Set p = n.Parent
-        Do
-            If Not isRed(p) Then
-                Exit Do
-            End If
-
+        Do While isRed(p)
             Set gp = p.Parent
-            If isRed(gp.Lchild) And isRed(gp.Rchild) Then ' Case 1
-                ColorFlip gp
-                Set p = gp.Parent
-            ElseIf gp.Lchild Is p Then
-                If isRed(gp.Lchild) And isRed(gp.Lchild.Rchild) Then ' Case 2
-                    RotateLeft gp.Lchild
+            If gp.Lchild Is p Then             ' Left side
+                If isRed(gp.Rchild) Then       ' Case 1 - Uncle is red
+                    ColorFlip gp
+                    Set p = gp.Parent
+                Else
+                    If isRed(p.Rchild) Then    ' Case 2 - Left/Right is red
+                        Set p = RotateLeft(p)
+                    End If
+                    Set gp = RotateRight(gp)   ' Case 3 - Left/Left is red
+                    Exit Do
                 End If
-                If IsRed(gp.Lchild) And isRed(gp.Lchild.Lchild) Then ' Case 3
-                    RotateRight gp
+            Else                               ' Right side
+                If isRed(gp.Lchild) Then       ' Case 1 - Uncle is red
+                    ColorFlip gp
+                    Set p = gp.Parent
+                Else
+                    If isRed(p.Lchild) Then    ' Case 2 - Right/Left is red
+                        Set p = RotateRight(p)
+                    End If
+                    Set gp = RotateLeft(gp)    ' Case 3 - Right/Right is red
+                    Exit Do
                 End If
-                Exit Do
-            Else
-                If isRed(gp.Rchild) And isRed(gp.Rchild.Lchild) Then ' Case 2
-                    RotateRight p
-                End If
-                If IsRed(gp.Rchild) And isRed(gp.Rchild.Rchild) Then ' Case 3
-                    RotateLeft gp
-                End If
-                Exit Do
             End If
-        Loop Until FALSE
+        Loop
     End Sub
 
     Private Function SearchNode(n, byval v)
-        If n Is Nothing Then
-            SearchNode = FALSE
-        ElseIf v < n.Data Then
-            SearchNode = SearchNode(n.Lchild, v)
-        ElseIf v > n.Data Then
-            SearchNode = SearchNode(n.Rchild, v)
-        Else
-            SearchNode = TRUE
-        End If
+        Dim q : Set q = n
+        Do Until q Is Nothing
+            If v = q.Data Then
+                SearchNode = TRUE
+                Exit Function
+            ElseIf v < q.Data Then
+                Set q = q.Lchild
+            Else
+                Set q = q.Rchild
+            End If
+        Loop
+        SearchNode = FALSE
     End Function
 
     Public Function Search(byval v)
@@ -310,14 +321,18 @@ Class RBTree
         Dim i, rnum
         Randomize timer
         For i = 1 to cnt
-            rnum = rnd*100 mod cnt
-            Wscript.Echo rnum
+            rnum = cint(rnd*cnt)
             If Not Search(rnum) Then
+                ' Wscript.Echo rnum
                 If NodeInsert(rnum) Is Nothing Then
                     Exit Sub
                 End If
+                ' PrintTree
+                ' If Not TreeAssert Then
+                '     Wscript.Echo "Tree is not valid."
+                '     Exit Sub
+                ' End If
             End If
-            PrintTree
         Next
     End Sub
 
@@ -405,7 +420,7 @@ End Class
 
 Dim T, n, i, S
 Set T = New RBTree
-T.InsertRandomData 15
+T.InsertRandomData 10
 T.PrintTree
 If Not T.TreeAssert Then
     Wscript.Echo "Tree is not valid."
