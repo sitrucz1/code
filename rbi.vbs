@@ -1,7 +1,7 @@
 Option Explicit
 
-Private Const RED    = TRUE
-Private Const BLACK  = FALSE
+Private Const RED   = TRUE
+Private Const BLACK = FALSE
 
 Class RBTree
     Public Root
@@ -180,19 +180,18 @@ Class RBTree
         Dim q : Set q = n
         Do Until q Is Nothing
             If v = q.Data Then
-                SearchNode = TRUE
-                Exit Function
+                Exit Do
             ElseIf v < q.Data Then
                 Set q = q.Lchild
             Else
                 Set q = q.Rchild
             End If
         Loop
-        SearchNode = FALSE
+        Set SearchNode = q
     End Function
 
     Public Function Search(byval v)
-        Search = SearchNode(Me.Root, v)
+        Set Search = SearchNode(Me.Root, v)
     End Function
 
     Private Function InOrderSuccessor(n)
@@ -270,59 +269,59 @@ Class RBTree
         Set DelFixupRight = n
     End Function
 
-    Private Function DelNode(n, byval v)
-        Dim t
-        If Not n Is Nothing Then
+    Private Sub SpliceNode(n, q)
+        Dim SavedColor : SavedColor = n.SavedColor
+        If n.Parent Is Nothing Then
+            Set Root = q
+        ElseIf n.Parent.Lchild Is n Then
+            Set n.Parent.Lchild = q
+        Else
+            Set n.Parent.Rchild = q
+        End If
+        If Not q Is Nothing Then
+            q.Parent = n.Parent
+        End If
+        Set n = Nothing
+        If q Is Nothing And SavedColor = BLACK Then
+            ' DeleteFixup
+        End If
+    End Sub
+
+    Public Sub DeleteNode(byval v)
+        Dim n, t : Set n = Root
+        Do Until n Is Nothing
             If v < n.Data Then
-                Set n.Lchild = DelNode(n.Lchild, v)
-                Set n = DelFixupLeft(n)
+                Set n = n.Lchild
             ElseIf v > n.Data Then
-                Set n.Rchild = DelNode(n.Rchild, v)
-                Set n = DelFixupRight(n)
+                Set n = n.Rchild
             Else
-                If n.Lchild Is Nothing And n.Rchild Is Nothing Then
-                    Wscript.Echo "Deleting Leaf ", isRed(n)
-                    DeleteCompleted = isRed(n)
-                    Set n = Nothing
-                ElseIf n.Lchild Is Nothing Then
-                    Wscript.Echo "Deleting One Child Leaf"
-                    Set t = n
-                    Set n = t.Rchild
-                    n.Color = BLACK
-                    Set t = Nothing
-                    DeleteCompleted = TRUE
+                If n.Lchild Is Nothing Then
+                    SpliceNode n, n.Rchild
                 ElseIf n.Rchild Is Nothing Then
-                    Wscript.Echo "Deleting One Child Leaf"
-                    Set t = n
-                    Set n = t.Lchild
-                    n.Color = BLACK
-                    Set t = Nothing
-                    DeleteCompleted = TRUE
+                    SpliceNode n, n.Lchild
                 Else
-                    Set t = InOrderSuccessor(n)
+                    Set t = n.Rchild
+                    Do Until t.Lchild Is Nothing
+                        Set t = t.Lchild
+                    Loop
+                    v = t.Data
                     n.Data = t.Data
-                    Set n.Rchild = DelNode(n.Rchild, t.Data)
-                    Set n = DelFixupRight(n)
+                    Set n = n.Rchild
                 End If
             End If
-        End If
-        Set DelNode = n
-    End Function
+        Loop
 
-    Public Function DeleteNode(byval v)
-        Set Root = DelNode(Root, v)
-        If Not Root Is Nothing Then
-            Root.Color = BLACK
-        End If
-        DeleteNode = TRUE
-    End Function
+        ' If Not Root Is Nothing Then
+        '     Root.Color = BLACK
+        ' End If
+    End Sub
 
     Public Sub InsertRandomData(byval cnt)
         Dim i, rnum
         Randomize timer
         For i = 1 to cnt
             rnum = cint(rnd*cnt)
-            If Not Search(rnum) Then
+            If Search(rnum) Is Nothing Then
                 ' Wscript.Echo rnum
                 If NodeInsert(rnum) Is Nothing Then
                     Exit Sub
@@ -425,3 +424,5 @@ T.PrintTree
 If Not T.TreeAssert Then
     Wscript.Echo "Tree is not valid."
 End If
+T.DeleteNode T.Root.Data
+T.PrintTree
