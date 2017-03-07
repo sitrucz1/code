@@ -176,8 +176,8 @@ Class RBTree
         Loop
     End Sub
 
-    Private Function SearchNode(n, byval v)
-        Dim q : Set q = n
+    Private Function Search(byval v)
+        Dim q : Set q = Root
         Do Until q Is Nothing
             If v = q.Data Then
                 Exit Do
@@ -187,90 +187,77 @@ Class RBTree
                 Set q = q.Rchild
             End If
         Loop
-        Set SearchNode = q
+        Set Search = q
     End Function
 
-    Public Function Search(byval v)
-        Set Search = SearchNode(Me.Root, v)
-    End Function
-
-    Private Function InOrderSuccessor(n)
-        Dim v
-        Set v = n.Rchild
-        Do While Not v.Lchild Is Nothing
-            Set v = v.Lchild
-        Loop
-        Set InOrderSuccessor = v
-    End Function
-
-    Private Function DelFixupLeft(n) ' Double black is to the left
-        Dim s ' sibling of Double Black
-        If Not DeleteCompleted Then
-            Wscript.Echo "DelFixupLeft"
-            Set s = n.Rchild
-            If Not s Is Nothing Then
-                If Not isRed(s) And (isRed(s.Lchild) Or isRed(s.Rchild)) Then ' Case 1
-                    Wscript.Echo "Case 1 - Sibling Black with a Red child"
-                    If isRed(s.Rchild) Then
-                        Set n = RotateLeft(n)
-                    ElseIf isRed(s.Lchild) Then
-                        Set n.Rchild = RotateRight(n.Rchild)
-                        Set n = RotateLeft(n)
-                    End If
-                    n.Lchild.Color = BLACK
-                    n.Rchild.Color = BLACK
-                    DeleteCompleted = TRUE
-                ElseIf Not isRed(s) And Not isRed(s.Lchild) And Not isRed(s.Rchild) Then ' Case 2
-                    Wscript.Echo "Case 2 - Sibling Black with Black Children ", isRed(n)
-                    DeleteCompleted = isRed(n) ' If parent RED we are done otherwise push it up a level
-                    n.Color = BLACK
+    Private Sub DeleteFixup(n)
+        ' Invariant: n is not root, n is (d)black
+        Dim db, p, s : Set db = n
+        Do
+            Wscript.Echo "Delete fixup"
+            Set p = db.Parent
+            If p.Lchild Is db Then ' db is on the left
+                Set s = p.Rchild
+                If isRed(s) Then                                              ' Case 1 - Red Sibling Case Reduction
+                    Wscript.Echo "Case 1 - Red sibling case reduction"
+                    Set p = RotateLeft(p)
+                    Set p = db.Parent
+                    Set s = p.Rchild
+                End If
+                If Not isRed(s.Lchild) And Not isRed(s.Rchild) Then           ' Case 2 - Black Sibling and Black Children
+                    Wscript.Echo "Case 2 - Black sibling and Black children, move up"
                     s.Color = RED
-                ElseIf isRed(s) Then ' Case 3
-                    Wscript.Echo "Case 3 - Sibling Red"
-                    Set n = RotateLeft(n)
-                    Set n.Lchild = DelFixupLeft(n.Lchild) ' Let's recursively fix this since it's now a previous case
-                    DeleteCompleted = TRUE
+                    If isRed(p) Or p Is Root Then
+                        p.Color = BLACK
+                        Exit Do
+                    End If
+                    Set db = p
+                Else
+                    If isRed(s.Lchild) Then                                   ' Case 3 - Black sibling and left Red child
+                        Wscript.Echo "Case 3 - Black sibling and left Red child"
+                        Set p.Rchild = RotateRight(p.Rchild)
+                    End If
+                    Wscript.Echo "Case 4 - Black sibling and right Red child" ' Case 4 - Black sibling and right Red child
+                    Set p = RotateLeft(p)
+                    p.Lchild.Color = BLACK
+                    p.Rchild.Color = BLACK
+                    Exit Do
+                End If
+            Else 'db is on the right
+                Set s = p.Lchild
+                If isRed(s) Then                                              ' Case 1 - Red Sibling Case Reduction
+                    Wscript.Echo "Case 1 - Red sibling case reduction"
+                    Set p = RotateRight(p)
+                    Set p = db.Parent
+                    Set s = p.Lchild
+                End If
+                If Not isRed(s.Lchild) And Not isRed(s.Rchild) Then           ' Case 2 - Black Sibling and Black Children
+                    Wscript.Echo "Case 2 - Black sibling and Black children, move up"
+                    s.Color = RED
+                    If isRed(p) Or p Is Root Then
+                        p.Color = BLACK
+                        Exit Do
+                    End If
+                    Set db = p
+                Else
+                    If isRed(s.Rchild) Then                                   ' Case 3 - Black sibling and Right Red child
+                        Wscript.Echo "Case 3 - Black sibling and right Red child"
+                        Set p.Lchild = RotateLeft(p.Lchild)
+                    End If
+                    Wscript.Echo "Case 4 - Black sibling and left Red child"  ' Case 4 - Black sibling and Left Red child
+                    Set p = RotateRight(p)
+                    p.Lchild.Color = BLACK
+                    p.Rchild.Color = BLACK
+                    Exit Do
                 End If
             End If
-        End If
-        Set DelFixupLeft = n
-    End Function
-
-    Private Function DelFixupRight(n) ' Double black is to the right
-        Dim s ' sibling of Double Black
-        If Not DeleteCompleted Then
-            Wscript.Echo "DelFixupRight"
-            Set s = n.Lchild
-            If Not s Is Nothing Then
-                If Not isRed(s) And (isRed(s.Lchild) Or isRed(s.Rchild)) Then ' Case 1
-                    Wscript.Echo "Case 1 - Sibling Black with a Red child"
-                    If isRed(s.Lchild) Then
-                        Set n = RotateRight(n)
-                    ElseIf isRed(s.Rchild) Then
-                        Set n.Lchild = RotateLeft(n.Lchild)
-                        Set n = RotateRight(n)
-                    End If
-                    n.Lchild.Color = BLACK
-                    n.Rchild.Color = BLACK
-                    DeleteCompleted = TRUE
-                ElseIf Not isRed(s) And Not isRed(s.Lchild) And Not isRed(s.Rchild) Then ' Case 2
-                    Wscript.Echo "Case 2 - Sibling Black with Black Children ", isRed(n)
-                    DeleteCompleted = isRed(n) ' If parent RED we are done otherwise push it up a level
-                    n.Color = BLACK
-                    s.Color = RED
-                ElseIf isRed(s) Then ' Case 3
-                    Wscript.Echo "Case 3 - Sibling Red"
-                    Set n = RotateRight(n)
-                    Set n.Rchild = DelFixupRight(n.Rchild) ' Let's recursively fix this since it's now a previous case
-                    DeleteCompleted = TRUE
-                End If
-            End If
-        End If
-        Set DelFixupRight = n
-    End Function
+        Loop Until FALSE
+    End Sub
 
     Private Sub SpliceNode(n, q)
-        Dim SavedColor : SavedColor = n.SavedColor
+        If Not n Is Root And n.Color = BLACK And q Is Nothing Then ' We are a leaf node and black
+            DeleteFixup n
+        End If
         If n.Parent Is Nothing Then
             Set Root = q
         ElseIf n.Parent.Lchild Is n Then
@@ -279,12 +266,10 @@ Class RBTree
             Set n.Parent.Rchild = q
         End If
         If Not q Is Nothing Then
-            q.Parent = n.Parent
+            q.Color = BLACK
+            Set q.Parent = n.Parent
         End If
         Set n = Nothing
-        If q Is Nothing And SavedColor = BLACK Then
-            ' DeleteFixup
-        End If
     End Sub
 
     Public Sub DeleteNode(byval v)
@@ -299,21 +284,20 @@ Class RBTree
                     SpliceNode n, n.Rchild
                 ElseIf n.Rchild Is Nothing Then
                     SpliceNode n, n.Lchild
-                Else
+                Else ' Two children find inorder successor
                     Set t = n.Rchild
                     Do Until t.Lchild Is Nothing
                         Set t = t.Lchild
                     Loop
-                    v = t.Data
                     n.Data = t.Data
+                    v = t.Data
                     Set n = n.Rchild
                 End If
             End If
         Loop
-
-        ' If Not Root Is Nothing Then
-        '     Root.Color = BLACK
-        ' End If
+        If Not Root Is Nothing Then
+            Root.Color = BLACK
+        End If
     End Sub
 
     Public Sub InsertRandomData(byval cnt)
@@ -322,15 +306,9 @@ Class RBTree
         For i = 1 to cnt
             rnum = cint(rnd*cnt)
             If Search(rnum) Is Nothing Then
-                ' Wscript.Echo rnum
                 If NodeInsert(rnum) Is Nothing Then
                     Exit Sub
                 End If
-                ' PrintTree
-                ' If Not TreeAssert Then
-                '     Wscript.Echo "Tree is not valid."
-                '     Exit Sub
-                ' End If
             End If
         Next
     End Sub
@@ -387,7 +365,7 @@ Class Node
     End Sub
 
     Public Function Init(n)
-        Data  = N
+        Data  = n
         Color = RED
         Set Lchild = Nothing
         Set Rchild = Nothing
@@ -419,10 +397,15 @@ End Class
 
 Dim T, n, i, S
 Set T = New RBTree
-T.InsertRandomData 10
+T.InsertRandomData 20
 T.PrintTree
 If Not T.TreeAssert Then
     Wscript.Echo "Tree is not valid."
 End If
-T.DeleteNode T.Root.Data
-T.PrintTree
+Do Until T.Root Is Nothing
+    T.DeleteNode T.Root.Data
+    T.PrintTree
+    If Not T.TreeAssert Then
+        Wscript.Echo "Tree is not valid."
+    End If
+Loop
