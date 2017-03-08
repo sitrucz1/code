@@ -255,7 +255,7 @@ Class RBTree
     End Sub
 
     Private Sub SpliceNode(n, q)
-        If Not n Is Root And n.Color = BLACK And q Is Nothing Then ' We are a leaf node and black
+        If Not n Is Root And n.Color = BLACK And Not isRed(q) Then ' Leaf black node or n and q are black
             DeleteFixup n
         End If
         If n.Parent Is Nothing Then
