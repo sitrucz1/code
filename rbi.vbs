@@ -30,17 +30,15 @@ Class RBTree
         Else
             lh = TreeA(n.Lchild)
             rh = TreeA(n.Rchild)
-            If lh <> 0 And rh <> 0 And lh <> rh Then
+            If lh = 0 And rh = 0 Then
+                TreeA = 0
+            ElseIf lh <> rh Then
                 Wscript.Echo "Black height violation"
                 TreeA = 0
-            ElseIf lh <> 0 and rh <> 0 Then
-                If isRed(n) Then
-                    TreeA = lh
-                Else
-                    TreeA = lh+1
-                End If
+            ElseIf isRed(n) Then
+                TreeA = lh
             Else
-                TreeA = 0
+                TreeA = lh+1
             End If
         End If
     End Function
