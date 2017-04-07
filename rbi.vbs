@@ -116,14 +116,13 @@ Class RBTree
         Dim n, p, f
         Set n = Root : Set p = Nothing
         Do Until n Is Nothing
+            Set p = n
             If v = n.Data Then ' Item already in the tree
                 Set NodeInsert = n
                 Exit Function
             ElseIf v < n.Data Then
-                Set p = n
                 Set n = n.Lchild
             Else
-                Set p = n
                 Set n = n.Rchild
             End If
         Loop
@@ -131,14 +130,12 @@ Class RBTree
         Set f.Parent = p
         If p Is Nothing Then ' At the root
             Set Root = f
+        ElseIf v < p.Data Then
+            Set p.Lchild = f
         Else
-            If f.Data < p.Data Then
-                Set p.Lchild = f
-            Else
-                Set p.Rchild = f
-            End If
-            InsertFixup f
+            Set p.Rchild = f
         End If
+        InsertFixup f
         Root.Color = BLACK
         Set NodeInsert = f
     End Function
@@ -176,7 +173,7 @@ Class RBTree
 
     Private Function Search(byval v)
         Dim q : Set q = Root
-        Do Until q Is Nothing
+        Do Until q Is Nothing ' Or v = q.Data
             If v = q.Data Then
                 Exit Do
             ElseIf v < q.Data Then
@@ -191,8 +188,8 @@ Class RBTree
     Private Sub DeleteFixup(n)
         ' Invariant: n is not root, n is (d)black
         Dim db, p, s : Set db = n
+        Wscript.Echo "Delete fixup"
         Do
-            Wscript.Echo "Delete fixup"
             Set p = db.Parent
             If p.Lchild Is db Then ' db is on the left
                 Set s = p.Rchild
@@ -252,10 +249,40 @@ Class RBTree
         Loop Until FALSE
     End Sub
 
-    Private Sub SpliceNode(n, q)
-        If Not n Is Root And n.Color = BLACK And Not isRed(q) Then ' Leaf black node or n and q are black
-            DeleteFixup n
+    Public Sub DeleteNode(byval v)
+        Dim n, q : Set n = Root
+        Wscript.Echo "DeleteNode ", v
+        ' Search for item v in the tree
+        Do Until n Is Nothing ' Or v = n.Data
+            If v = n.Data Then
+                Exit Do
+            ElseIf v < n.Data Then
+                Set n = n.Lchild
+            Else
+                Set n = n.Rchild
+            End If
+        Loop
+        ' q is the child of n
+        If n is Nothing Then
+            Exit Sub ' v was not found
+        ElseIf n.Lchild Is Nothing Then ' one child or leaf
+            Set q = n.Rchild
+        ElseIf n.Rchild Is Nothing Then ' one child or leaf
+            Set q = n.Lchild
+        Else ' Two children find inorder successor
+            Set q = n.Rchild
+            Do Until q.Lchild Is Nothing
+                Set q = q.Lchild
+            Loop
+            n.Data = q.Data
+            Set n = q
+            Set q = n.Rchild
         End If
+        ' n to be deleted and q is successor
+        If Not n Is Root And n.Color = BLACK And Not isRed(q) Then ' Leaf black node or n and q are black
+            DeleteFixup n ' Fix black height
+        End If
+        ' Splice out n
         If n.Parent Is Nothing Then
             Set Root = q
         ElseIf n.Parent.Lchild Is n Then
@@ -263,36 +290,14 @@ Class RBTree
         Else
             Set n.Parent.Rchild = q
         End If
+        ' Update color and parent of q
         If Not q Is Nothing Then
             q.Color = BLACK
             Set q.Parent = n.Parent
         End If
+        ' Free memory to n
         Set n = Nothing
-    End Sub
-
-    Public Sub DeleteNode(byval v)
-        Dim n, t : Set n = Root
-        Do Until n Is Nothing
-            If v < n.Data Then
-                Set n = n.Lchild
-            ElseIf v > n.Data Then
-                Set n = n.Rchild
-            Else
-                If n.Lchild Is Nothing Then
-                    SpliceNode n, n.Rchild
-                ElseIf n.Rchild Is Nothing Then
-                    SpliceNode n, n.Lchild
-                Else ' Two children find inorder successor
-                    Set t = n.Rchild
-                    Do Until t.Lchild Is Nothing
-                        Set t = t.Lchild
-                    Loop
-                    n.Data = t.Data
-                    v = t.Data
-                    Set n = n.Rchild
-                End If
-            End If
-        Loop
+        ' Make sure the root is black
         If Not Root Is Nothing Then
             Root.Color = BLACK
         End If

@@ -5,8 +5,8 @@ Class BST
         Set Root = Nothing
     End Sub
 
-    Function isLess(a, b)
-        isLess = (a < b) + 1
+    Function direc(a, b)
+        direc = (a < b) + 1
     End Function
 
     Sub Class_Terminate
@@ -14,12 +14,12 @@ Class BST
     End Sub
 
     Function BST_Insert(n, v)
-        Dim direc
+        Dim direction
         If n Is Nothing Then
             Set n = (New Node).Init(v)
         Else
-            direc = isLess(v, n.Data)
-            Set n.Child(direc) = BST_Insert(n.Child(direc), v)
+            direction = direc(v, n.Data)
+            Set n.Child(direction) = BST_Insert(n.Child(direction), v)
         End If
         Set BST_Insert = n
     End Function
@@ -51,5 +51,4 @@ Dim t
 Set t = New BST
 Set t.Root = t.BST_Insert(t.Root, 5)
 Set t.Root = t.BST_Insert(t.Root, 5)
-' Wscript.Echo t.isLess(1,1), t.isLess(1,2), t.isLess(2,1)
-
+Wscript.Echo t.direc(1,1), t.direc(1,2), t.direc(2,1)
