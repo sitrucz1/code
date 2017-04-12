@@ -11,7 +11,7 @@ Class RBTree
     End Sub
 
     Public Function TreeAssert
-        TreeAssert = Root Is Nothing Or TreeA(Root) > 0
+        TreeAssert = TreeA(Root) > 0
     End Function
 
     Private Function TreeA(n)
